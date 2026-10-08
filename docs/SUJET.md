@@ -1,7 +1,8 @@
 # Tek5 — SO-ARM101: simulation, IK, perception, pick & place
 
 **Goal:** a camera spots a red cube with holes, the arm picks it up and drops it in a box.
-In simulation first, then on the real robot.
+In simulation first, then, even better, on the real robot.
+In a second phase, find your own application with this robot arm. It could be anything !
 
 > [!NOTE]
 > The sim cube is the same 5 cm printed cube you will use on the real robot.
@@ -83,25 +84,28 @@ Everything else. At least three ROS2 nodes:
 
 ## Milestones
 
-- **S2 (visio):** `talker` works across containers, `driver_node` publishes
-  `/joint_states`, the arm moves on a manual `ros2 topic pub /joint_command ...`.
 - **S4 (mid-term review):** IK works, the arm reaches an arbitrary XYZ (< 1 cm error,
-  measured), gripper controllable.
-- **S7 (final defense):** full pick & place in sim, with randomized object and box poses.
+  measured), gripper controllable. Ideally the pick & place should be functional.
+- **S7 (final defense):** Robust pick & place in sim (and real robot preferred) + phase 2, the go further project.
 
-Deeper sessions on perception and on control / kinematics will come along the way.
+## Phase 1 : Pick & Place project
 
-## Go further: the real robot
+Remote sessions (visio) on perception and on control / kinematics are planned along the way.
 
 The real arm is a bonus on paper, but it is **the whole point of this project**.
 Thanks to `use_sim`, it is not much extra work, and a video of a real robot
 picking a real cube is far more fun, and worth a lot more on your CV, than any
-simulation.
-
-Be ambitious. It does not have to be perfect: a demo that works 7 times out of 10
-on a real arm beats a flawless sim nobody will ever watch. Film it.
+simulation. Also make a video of your demo with you on it for the final defense.
 
 Split the work in your team, but **every member must understand the whole
 pipeline**: camera, calibration, perception, IK, control, ROS2. Even at a basic
 level. That end-to-end view is what robotics is about, and what you will need
 if you keep going in this field.
+
+## Phase 2 : Go further
+
+Go beyond the pick & place and find your own application.
+The only constraint is that you need to use the work made in Phase 1.
+
+Be ambitious ! It does not have to be perfect.
+It could be anything: AI for control or perception, LLM, VLM, voice control, imitation learning, RL ...

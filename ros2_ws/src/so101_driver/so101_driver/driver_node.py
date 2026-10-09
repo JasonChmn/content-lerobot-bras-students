@@ -8,7 +8,6 @@ knows which one runs.
 TODO:
   - Publish /joint_states in RADIANS (>= 20 Hz)
   - Subscribe to /joint_command (radians, gripper 0-100 %)
-  - Disconnect the backend when the node stops
 """
 from pathlib import Path
 
@@ -93,7 +92,10 @@ class DriverNode(rclpy.node.Node):
         return robot
 
     def destroy_node(self):
-        # TODO: disconnect the backend
+        """Disconnects the backend (provided). On the real arm this disables the torque."""
+        if self._robot.is_connected:
+            self._robot.disconnect()
+            self.get_logger().info("Robot disconnected.")
         super().destroy_node()
 
     def _cb_joint_command(self, msg: JointState):

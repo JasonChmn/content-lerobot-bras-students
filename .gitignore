@@ -2,3 +2,7 @@ __pycache__/
 
 .env
 !.env.example
+.DS_Store
+../.DS_Store
+../.vscode/
+.vscode/

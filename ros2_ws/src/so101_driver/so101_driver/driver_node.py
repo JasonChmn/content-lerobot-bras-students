@@ -41,7 +41,9 @@ JOINT_STATE_HZ = 30.0
 
 
 def _gripper_pct_to_rad(pct: float) -> float:
-    raise NotImplementedError("TO DO")
+    """Convert gripper command from 0-100 % to radians."""
+    pct = max(0.0, min(100.0, pct))
+    return GRIPPER_RANGE_RAD[0] + (GRIPPER_RANGE_RAD[1] - GRIPPER_RANGE_RAD[0]) * (pct / 100.0)
 
 
 class DriverNode(rclpy.node.Node):
@@ -54,10 +56,18 @@ class DriverNode(rclpy.node.Node):
         mode = "simulation" if self._use_sim else "hardware"
         self.get_logger().info(f"Mode: {mode} (port={port})")
 
+        ##todo ancien
         self._robot = self._connect_arm(port)
         self.get_logger().info(f"Robot connected: {type(self._robot).__name__}")
 
-        # TODO: create the publishers, subscribers and timers.
+        self._target: dict[str, float] = {}
+
+        self._pub_states = self.create_publisher(JointState, "/joint_states", 10)
+        self.create_subscription(JointState, "/joint_command", self._cb_joint_command, 10)
+
+        self.create_timer(1.0 / CONTROL_HZ, self._control_step)
+        self.create_timer(1.0 / JOINT_STATE_HZ, self._publish_joint_states)
+
 
         self.get_logger().info("Driver node ready.")
 
@@ -89,17 +99,27 @@ class DriverNode(rclpy.node.Node):
         return robot
 
     def destroy_node(self):
-        # TODO: disconnect the backend
+        self._robot.disconnect()
         super().destroy_node()
 
     def _cb_joint_command(self, msg: JointState):
-        raise NotImplementedError("TO DO")
+        for name, pos in zip(msg.name, msg.position):
+            self._target[f"{name}.pos"] = pos
 
     def _control_step(self):
-        raise NotImplementedError("TO DO")
+        if self._target:
+            self._robot.send_action(self._target)
 
     def _publish_joint_states(self):
-        raise NotImplementedError("TO DO")
+        obs = self._robot.get_observation()
+        positions = [obs[f"{name}.pos"] for name in JOINT_NAMES]
+        positions[-1] = _gripper_pct_to_rad(positions[-1])  # gripper: % -> rad
+
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name = JOINT_NAMES
+        msg.position = positions
+        self._pub_states.publish(msg)
 
 
 def main(args=None):

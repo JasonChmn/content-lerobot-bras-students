@@ -86,6 +86,10 @@ class DriverNode(rclpy.node.Node):
                 f"{CALIBRATION_FILE} does not match the motors: wrong file for this arm? "
                 "Re-run lerobot-calibrate on the host."
             )
+        robot.bus.disable_torque()  # Comment out this line to control the robot.
+        self.get_logger().info(
+            "Torque disabled: arm can be moved freely by hand. Remove this part to control the arm."
+        )
         return robot
 
     def destroy_node(self):

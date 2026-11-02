@@ -42,6 +42,17 @@ ARM_JOINT_NAMES = [
 JOINT_NAMES = ARM_JOINT_NAMES + ["gripper"]
 
 
+class PickPlaceState(Enum):
+    IDLE = 0
+    HOVER = 1
+    DESCEND = 2
+    GRASP = 3
+    LIFT = 4
+    MOVE_DROP = 5
+    RELEASE = 6
+    HOME = 7
+
+
 class BrainNode(rclpy.node.Node):
     """Brain of the arm: kinematics, then pick & place."""
 
@@ -53,15 +64,33 @@ class BrainNode(rclpy.node.Node):
         self.q_current = np.zeros(len(JOINT_NAMES))
         self.ee_frame_id = None
 
+        # State Machine Initialization
+        self.state = PickPlaceState.IDLE
+        self.state_start_time = time.time()
+        self.target_obj_pos = None
+
+        # Known coordinates in the world frame
+        # self.drop_pos = np.array([0.05, -0.25, 0.15])  # Above the drop box
+        self.drop_pos = np.array(
+            [0.10, -0.20, 0.15]
+        )  # Moved inward to avoid singularity
+        self.home_pos = np.array([0.15, 0.0, 0.15])  # Safe resting position
+
         # Subscribe to robot_description (Transient Local) to build Pinocchio model
         qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
         self.create_subscription(
             String, "/robot_description", self._cb_robot_description, qos
         )
-
         self.create_subscription(JointState, "/joint_states", self._cb_joint_states, 10)
+        self.create_subscription(
+            PoseStamped, "/object_position", self._cb_object_position, 10
+        )
+
         self._tcp_pub = self.create_publisher(PoseStamped, "/end_effector_pose", 10)
         self._cmd_pub = self.create_publisher(JointState, "/joint_command", 10)
+
+        # Run the state machine at 10 Hz
+        self.create_timer(0.1, self._state_machine_step)
 
         self.get_logger().info("Brain node ready.")
 
@@ -72,17 +101,34 @@ class BrainNode(rclpy.node.Node):
             self.ee_frame_id = self.model.getFrameId("gripper_link")
             self.get_logger().info("Pinocchio model built successfully.")
 
+    # def _cb_joint_states(self, msg):
+    #     if self.model is None:
+    #         return
+
+    #     # Extract ALL joint positions (arm + gripper) in the correct order
+    #     cmd_map = dict(zip(msg.name, msg.position))
+    #     for i, name in enumerate(JOINT_NAMES):
+    #         if name in cmd_map:
+    #             self.q_current[i] = cmd_map[name]
+
+    #     self._forward_kinematics(self.q_current)
+
     def _cb_joint_states(self, msg):
         if self.model is None:
             return
 
-        # Extract ALL joint positions (arm + gripper) in the correct order
         cmd_map = dict(zip(msg.name, msg.position))
-        for i, name in enumerate(JOINT_NAMES):
+        for i, name in enumerate(ARM_JOINT_NAMES):
             if name in cmd_map:
                 self.q_current[i] = cmd_map[name]
 
         self._forward_kinematics(self.q_current)
+
+    def _cb_object_position(self, msg):
+        # Update the object target position dynamically
+        self.target_obj_pos = np.array(
+            [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
+        )
 
     def _forward_kinematics(self, q):
         pin.forwardKinematics(self.model, self.data, q)
@@ -115,6 +161,9 @@ class BrainNode(rclpy.node.Node):
 
         q = self.q_current.copy()
 
+        # Bias the solver towards a natural "forward" pose to stop the waist circling
+        q_reference = np.array([0.0, 0.5, 0.5, 0.0, 0.0, 0.0])
+
         for _ in range(max_iter):
             pin.forwardKinematics(self.model, self.data, q)
             pin.updateFramePlacements(self.model, self.data)
@@ -135,6 +184,13 @@ class BrainNode(rclpy.node.Node):
             J_pos = J[:3, :]  # Use only position Jacobian
 
             v = np.linalg.pinv(J_pos) @ err
+
+            # Add a small null-space projection to pull the joints toward the reference posture
+            # This prevents wild unnatural swinging while still reaching the target XYZ
+            null_space_matrix = np.eye(self.model.nv) - np.linalg.pinv(J_pos) @ J_pos
+            posture_err = q_reference - q
+            v += null_space_matrix @ (posture_err * 0.1)
+
             q = pin.integrate(self.model, q, v * 0.1)  # 0.1 step size
 
         self.get_logger().warning("IK failed to converge.")
@@ -144,8 +200,96 @@ class BrainNode(rclpy.node.Node):
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.name = JOINT_NAMES
-        msg.position = list(q) + [gripper_pct]
+        msg.position = list(q[:5]) + [gripper_pct]
         self._cmd_pub.publish(msg)
+
+    def _transition(self, next_state):
+        self.state = next_state
+        self.state_start_time = time.time()
+        self.get_logger().info(f"Transitioning to: {self.state.name}")
+
+    def _state_machine_step(self):
+        if self.model is None:
+            return
+
+        elapsed = time.time() - self.state_start_time
+
+        if self.state == PickPlaceState.IDLE:
+            # Wait until perception node finds the object
+            if self.target_obj_pos is not None:
+                self._transition(PickPlaceState.HOVER)
+
+        elif self.state == PickPlaceState.HOVER:
+            # Move 12cm above the object
+            target = self.target_obj_pos.copy()
+            target[2] += 0.15
+
+            q_target = self.solve_ik(target)
+            self.send_joint_command(q_target, gripper_pct=0.0)
+
+            if elapsed > 3.0:  # Allow 3 seconds to reach position
+                self._transition(PickPlaceState.DESCEND)
+
+        elif self.state == PickPlaceState.DESCEND:
+            # Lower the gripper to grasp level (z ~ 2.5cm)
+            target = self.target_obj_pos.copy()
+            target[2] += 0.025
+
+            q_target = self.solve_ik(target)
+            self.send_joint_command(q_target, gripper_pct=0.0)
+
+            if elapsed > 2.0:
+                self._transition(PickPlaceState.GRASP)
+
+        elif self.state == PickPlaceState.GRASP:
+            # Hold position, close gripper to 0%
+            target = self.target_obj_pos.copy()
+            target[2] += 0.025
+
+            q_target = self.solve_ik(target)
+            self.send_joint_command(q_target, gripper_pct=100.0)
+
+            if elapsed > 1.0:
+                self._transition(PickPlaceState.LIFT)
+
+        elif self.state == PickPlaceState.LIFT:
+            # Lift back up with the object
+            target = self.target_obj_pos.copy()
+            target[2] += 0.15
+
+            q_target = self.solve_ik(target)
+            self.send_joint_command(q_target, gripper_pct=100.0)
+
+            if elapsed > 2.0:
+                self._transition(PickPlaceState.MOVE_DROP)
+
+        elif self.state == PickPlaceState.MOVE_DROP:
+            # Move over the drop box while keeping gripper closed
+            q_target = self.solve_ik(self.drop_pos)
+            self.send_joint_command(q_target, gripper_pct=100.0)
+
+            if elapsed > 3.0:
+                self._transition(PickPlaceState.RELEASE)
+
+        elif self.state == PickPlaceState.RELEASE:
+            # Open gripper to 100%
+            q_target = self.solve_ik(self.drop_pos)
+            self.send_joint_command(q_target, gripper_pct=0.0)
+
+            if elapsed > 1.0:
+                self._transition(PickPlaceState.HOME)
+
+        elif self.state == PickPlaceState.HOME:
+            # Return to safe position
+            q_target = self.solve_ik(self.home_pos)
+            self.send_joint_command(q_target, gripper_pct=100.0)
+
+            if elapsed > 3.0:
+                # To make it run once and stop, keep it in HOME.
+                # To make it loop, uncomment the lines below:
+                self.target_obj_pos = None
+                self._transition(PickPlaceState.IDLE)
+                # pass
 
 
 def main(args=None):

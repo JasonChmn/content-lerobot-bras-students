@@ -85,8 +85,13 @@ class DriverNode(rclpy.node.Node):
 
         self._current_cmd = None
         self._target_cmd = None
-        self._arm_max_speed = 2.0  # radians per second
-        self._gripper_max_speed = 100.0  # percent per second
+
+        if self._use_sim:
+            self._arm_max_speed = 5.0  # radians per second
+            self._gripper_max_speed = 250.0  # percent per second
+        else:
+            self._arm_max_speed = 1.0
+            self._gripper_max_speed = 50.0
 
         self._control_timer = self.create_timer(1.0 / CONTROL_HZ, self._control_step)
         self.get_logger().info("Driver node ready.")

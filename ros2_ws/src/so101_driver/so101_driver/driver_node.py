@@ -30,6 +30,7 @@ JOINT_NAMES = [
     "wrist_roll",
     "gripper",
 ]
+ARM_JOINT_NAMES = JOINT_NAMES[:5]
 
 # Gripper joint limits in the URDF (rad).
 # LeRobot convention: 0 % = closed (lower), 100 % = open (upper).
@@ -41,6 +42,7 @@ DEFAULT_PORT = "/dev/ttyACM0"
 
 CONTROL_HZ = 50.0
 JOINT_STATE_HZ = 30.0
+CAMERA_HZ = 10.0
 
 
 def _gripper_pct_to_rad(pct: float) -> float:

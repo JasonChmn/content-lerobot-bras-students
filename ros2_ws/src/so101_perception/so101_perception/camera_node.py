@@ -15,15 +15,12 @@ class CameraNode(rclpy.node.Node):
     def __init__(self):
         super().__init__("external_camera_publisher")
 
-        # Declare configurable parameters
         self.declare_parameter("device_index", 2)
         self.declare_parameter("frame_id", "external_camera_optical_frame")
         self.declare_parameter("fps", 30.0)
         self.declare_parameter("width", 640)
         self.declare_parameter("height", 480)
 
-        # Approximate or calibrated camera intrinsics (fx, fy, cx, cy)
-        # Default assumes roughly 60 deg horizontal FoV for a 640x480 frame
         self.declare_parameter("fx", 500.0)
         self.declare_parameter("fy", 500.0)
         self.declare_parameter("cx", 320.0)
@@ -35,7 +32,6 @@ class CameraNode(rclpy.node.Node):
         self._width = self.get_parameter("width").value
         self._height = self.get_parameter("height").value
 
-        # Publishers required by perception_node
         self._image_pub = self.create_publisher(Image, "/external_cam/image_raw", 1)
         self._info_pub = self.create_publisher(
             CameraInfo, "/external_cam/camera_info", 10
@@ -43,7 +39,6 @@ class CameraNode(rclpy.node.Node):
 
         self._bridge = CvBridge()
 
-        # Initialize VideoCapture with V4L2 backend
         self._cap = cv2.VideoCapture(self._device_index, cv2.CAP_V4L2)
         if not self._cap.isOpened():
             self._cap = cv2.VideoCapture(self._device_index)
@@ -52,16 +47,13 @@ class CameraNode(rclpy.node.Node):
             self.get_logger().error(f"Cannot open camera device {self._device_index}")
             raise RuntimeError(f"Could not open /dev/video{self._device_index}")
 
-        # Set capture parameters and keep buffer minimal to prevent lag
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
         self._cap.set(cv2.CAP_PROP_FPS, self._fps)
         self._cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-        # Precompute the fixed CameraInfo structure
         self._camera_info_msg = self._build_camera_info()
 
-        # Timer loop
         self._timer = self.create_timer(1.0 / self._fps, self._publish_frame)
         self.get_logger().info(
             f"Camera node running on device {self._device_index} at {self._fps} Hz ({self._width}x{self._height})."
@@ -81,7 +73,6 @@ class CameraNode(rclpy.node.Node):
         info.distortion_model = "plumb_bob"
         info.d = [0.0, 0.0, 0.0, 0.0, 0.0]
 
-        # 3x3 Intrinsic camera matrix K
         info.k = [
             fx,
             0.0,
@@ -94,7 +85,6 @@ class CameraNode(rclpy.node.Node):
             1.0,
         ]
 
-        # 3x3 Rectification matrix R (identity for monocular)
         info.r = [
             1.0,
             0.0,
@@ -107,7 +97,6 @@ class CameraNode(rclpy.node.Node):
             1.0,
         ]
 
-        # 3x4 Projection matrix P
         info.p = [
             fx,
             0.0,
@@ -132,15 +121,12 @@ class CameraNode(rclpy.node.Node):
             )
             return
 
-        # Synchronize timestamps across both messages
         stamp = self.get_clock().now().to_msg()
 
-        # Image message conversion
         img_msg = self._bridge.cv2_to_imgmsg(frame, encoding="bgr8")
         img_msg.header.stamp = stamp
         img_msg.header.frame_id = self._frame_id
 
-        # Update CameraInfo timestamp
         self._camera_info_msg.header.stamp = stamp
 
         self._image_pub.publish(img_msg)

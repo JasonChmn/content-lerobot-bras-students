@@ -21,13 +21,6 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
 
 
-# -- HSV ranges for the red cube --------------------------------------------
-# Values based on scene_tek5.xml comments (OpenCV HSV ~168, 185)
-# HSV_MIN = np.array([160, 150, 50], dtype=np.uint8)
-# HSV_MAX = np.array([180, 255, 255], dtype=np.uint8)
-
-
-# -- Corrected HSV ranges for the Red PLA cube (Hue ~ 168-180) --
 HSV_MIN = np.array([160, 100, 100], dtype=np.uint8)
 HSV_MAX = np.array([180, 255, 255], dtype=np.uint8)
 
@@ -40,17 +33,14 @@ class PerceptionNode(rclpy.node.Node):
         self._bridge = CvBridge()
         self._cam_k = None
 
-        # Declare parameters for camera extrinsics with your current MuJoCo defaults
         self.declare_parameter("cam_pos", [0.45, 0.25, 0.35])
         self.declare_parameter(
             "cam_xyaxes", [-0.707, 0.707, 0.0, -0.354, -0.354, 0.866]
         )
 
-        # Fetch the parameters and build the matrices
         self._cam_pos = np.array(self.get_parameter("cam_pos").value)
         xyaxes = np.array(self.get_parameter("cam_xyaxes").value)
 
-        # Build the rotation matrix
         x_axis = xyaxes[0:3]
         y_axis = xyaxes[3:6]
         z_axis = np.cross(x_axis, y_axis)
@@ -85,8 +75,6 @@ class PerceptionNode(rclpy.node.Node):
     def _detect_object(self, cv_image):
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
-        # mask = cv2.inRange(hsv, HSV_MIN, HSV_MAX)
-        # Red wraps around the HSV spectrum in OpenCV (0-10 and 160-179)
         mask1 = cv2.inRange(hsv, np.array([0, 100, 100]), np.array([10, 255, 255]))
         mask2 = cv2.inRange(hsv, np.array([160, 100, 100]), np.array([179, 255, 255]))
         mask = cv2.bitwise_or(mask1, mask2)
@@ -105,42 +93,19 @@ class PerceptionNode(rclpy.node.Node):
             return int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])
         return None, None
 
-    # def _project_to_3d(self, u, v):
-    #     """Projects a 2D pixel to the z=0 plane using the known extrinsics."""
-    #     # Ray in camera frame
-    #     ray_cam = np.linalg.inv(self._cam_k) @ np.array([u, v, 1.0])
-    #     ray_cam /= np.linalg.norm(ray_cam)
-
-    #     # Ray in world frame
-    #     ray_world = self._cam_rot @ ray_cam
-
-    #     # Intersect with z=0 (table)
-    #     if abs(ray_world[2]) < 1e-6:
-    #         return None
-
-    #     t = -self._cam_pos[2] / ray_world[2]
-    #     return self._cam_pos + t * ray_world
-
     def _project_to_3d(self, u, v):
         """Projects a 2D pixel to the Z=0.025 plane using the known extrinsics."""
-        # 1. Ray in OpenCV camera frame (Z forward, Y down, X right)
         ray_cv = np.linalg.inv(self._cam_k) @ np.array([u, v, 1.0])
-
-        # 2. Convert to MuJoCo camera frame (Z backward, Y up, X right)
         ray_mj = np.array([ray_cv[0], -ray_cv[1], -ray_cv[2]])
         ray_mj /= np.linalg.norm(ray_mj)
-
-        # 3. Ray in World frame
         ray_world = self._cam_rot @ ray_mj
 
-        # 4. Intersect with cube center height (Z = 0.025)
-        # Equation: cam_pos.z + t * ray_world.z = 0.025
         if abs(ray_world[2]) < 1e-6:
             return None
 
         t = (0.025 - self._cam_pos[2]) / ray_world[2]
         if t < 0:
-            return None  # Ray is pointing away from the table
+            return None
 
         return self._cam_pos + t * ray_world
 

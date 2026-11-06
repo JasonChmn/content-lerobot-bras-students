@@ -53,6 +53,10 @@ class PerceptionNode(rclpy.node.Node):
             Image, "/external_cam/image_raw", self._cb_image, 10
         )
         self._pose_pub = self.create_publisher(PoseStamped, "/object_position", 10)
+        self._annotated_pub = self.create_publisher(
+            Image, "/perception/annotated_image", 10
+        )
+        self._dropbox_pub = self.create_publisher(PoseStamped, "/drop_box_position", 10)
 
         self.get_logger().info("Perception node ready.")
 
@@ -65,12 +69,53 @@ class PerceptionNode(rclpy.node.Node):
             return
 
         cv_image = self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        u, v = self._detect_object(cv_image)
+        u, v, contour = self._detect_object(cv_image)
 
         if u is not None and v is not None:
             pos_3d = self._project_to_3d(u, v)
             if pos_3d is not None:
                 self._publish_result(pos_3d, msg.header.stamp)
+
+        # 1. Publish the static Drop Box Position
+        box_msg = PoseStamped()
+        box_msg.header.stamp = self.get_clock().now().to_msg()
+        box_msg.header.frame_id = "world"
+        box_msg.pose.position.x = 0.05
+        box_msg.pose.position.y = -0.25
+        box_msg.pose.position.z = 0.025
+        box_msg.pose.orientation.w = 1.0
+        self._dropbox_pub.publish(box_msg)
+
+        # 2. Draw the contour of the cube
+        if contour is not None:
+            cv2.drawContours(cv_image, [contour], -1, (0, 255, 0), 1)
+
+        # 3. Project the 3D Drop Box corners onto the 2D image
+        # The box is centered at X=0.05, Y=-0.25 and is 0.10m wide.
+        box_corners_3d = [
+            (0.00, -0.20, 0.05),  # Top-Left
+            (0.10, -0.20, 0.05),  # Top-Right
+            (0.10, -0.30, 0.05),  # Bottom-Right
+            (0.00, -0.30, 0.05),  # Bottom-Left
+        ]
+
+        box_pixels = []
+        for pt in box_corners_3d:
+            uv = self._project_3d_to_pixel(pt)
+            if uv is not None:
+                box_pixels.append(uv)
+
+        if len(box_pixels) == 4:
+            # Draw the projected polygon
+            pts_array = np.array(box_pixels, dtype=np.int32)
+            cv2.polylines(
+                cv_image, [pts_array], isClosed=True, color=(255, 0, 0), thickness=1
+            )
+
+        # 3. Publish the annotated image to the NEW topic
+        annotated_msg = self._bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
+        annotated_msg.header = msg.header
+        self._annotated_pub.publish(annotated_msg)
 
     def _detect_object(self, cv_image):
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
@@ -90,7 +135,7 @@ class PerceptionNode(rclpy.node.Node):
 
         M = cv2.moments(largest_contour)
         if M["m00"] > 0:
-            return int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])
+            return int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]), largest_contour
         return None, None
 
     def _project_to_3d(self, u, v):
@@ -108,6 +153,23 @@ class PerceptionNode(rclpy.node.Node):
             return None
 
         return self._cam_pos + t * ray_world
+
+    def _project_3d_to_pixel(self, pt_3d):
+        """Projects a 3D world coordinate back to a 2D camera pixel."""
+        # Vector from camera to 3D point
+        ray_world = np.array(pt_3d) - self._cam_pos
+        # Reverse the rotation to get into MuJoCo camera frame
+        ray_mj = self._cam_rot.T @ ray_world
+        # Convert MuJoCo frame to OpenCV frame
+        ray_cv = np.array([ray_mj[0], -ray_mj[1], -ray_mj[2]])
+
+        if ray_cv[2] <= 0:
+            return None  # Point is behind the camera
+
+        # Normalize and apply intrinsics
+        ray_cv /= ray_cv[2]
+        uv = self._cam_k @ ray_cv
+        return int(uv[0]), int(uv[1])
 
     def _publish_result(self, pos_3d, stamp):
         msg = PoseStamped()

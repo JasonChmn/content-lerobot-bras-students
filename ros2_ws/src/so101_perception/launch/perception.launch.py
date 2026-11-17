@@ -13,12 +13,13 @@ def generate_launch_description():
     is_sim = env_use_sim == "true"
 
     # Choose the correct extrinsic matrices based on USE_SIM
-    cam_pos = [0.45, 0.25, 0.35] if is_sim else [0.2106, -0.5109, 0.4416]
+    cam_pos = [0.45, 0.25, 0.35] if is_sim else [0.0810, -0.5673, 0.4207]
     cam_xyaxes = (
         [-0.707, 0.707, 0.0, -0.354, -0.354, 0.866]
         if is_sim
-        else [0.9586, 0.2468, -0.1419, 0.0666, -0.6792, -0.7309]
+        else [0.9939, 0.0615, 0.0913, 0.1101, -0.5456, -0.8308]
     )
+
     return LaunchDescription(
         [
             # The Perception Node

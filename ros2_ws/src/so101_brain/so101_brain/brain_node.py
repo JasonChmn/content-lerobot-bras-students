@@ -258,7 +258,7 @@ class BrainNode(rclpy.node.Node):
 
             q_target = self.solve_ik(release_target)
 
-            q_target[3] += 0.8
+            q_target[3] += 0.3
 
             self.send_joint_command(q_target, gripper_pct=50.0)
             if elapsed > 5.0:

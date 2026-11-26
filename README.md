@@ -51,7 +51,7 @@ In a second terminal: `pixi run rviz2`.
 
 | Command | |
 |---|---|
-| `pixi run build` | Build the packages of `ros2_ws` changed since the last build |
+| `pixi run build` | Build `ros2_ws` |
 | `pixi run launch --backend sim` | Build and launch the stack in simulation (default backend) |
 | `pixi run launch --backend real --port <port>` | Same stack on the real arm |
 | `pixi run rviz2` | RViz with `ros2_ws/so101.rviz` |

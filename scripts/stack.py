@@ -24,7 +24,8 @@ if opts.backend == "real" and not opts.port:
 overlay.load()  # workspace built after pixi activated (by `build`)
 
 use_sim = "true" if opts.backend == "sim" else "false"
-command = ["ros2", "launch", "so101_bringup", "so101.launch.py", f"use_sim:={use_sim}", *([f"port:={opts.port}"] if opts.port else [])]
+# --noninteractive: ros2 launch forwards Ctrl-C to the nodes (own session, see below).
+command = ["ros2", "launch", *(["--noninteractive"] if os.name != "nt" else []), "so101_bringup", "so101.launch.py", f"use_sim:={use_sim}", *([f"port:={opts.port}"] if opts.port else [])]
 # POSIX: own session, so a terminal Ctrl-C reaches the nodes once (from ros2 launch),
 # not twice, which would interrupt destroy_node().
 proc = subprocess.Popen(command, start_new_session=os.name != "nt")

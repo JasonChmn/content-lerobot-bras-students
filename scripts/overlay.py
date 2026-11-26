@@ -39,7 +39,11 @@ if __name__ == "__main__":
         else:
             os.environ["GALLIUM_DRIVER"] = "llvmpipe"
             print("[rviz] WSL: RViz renders on the CPU, GALLIUM_DRIVER=d3d12 for the GPU", file=sys.stderr)
+    command = sys.argv[1:]
+    if command[0] == "rviz2" and "--ros-args" not in command:
+        # Hides its startup INFO lines ("Stereo is NOT SUPPORTED"), keeps warnings and errors.
+        command += ["--ros-args", "--log-level", "rviz2:=warn"]
     try:
-        sys.exit(subprocess.call(sys.argv[1:]))
+        sys.exit(subprocess.call(command))
     except KeyboardInterrupt:
         sys.exit(130)

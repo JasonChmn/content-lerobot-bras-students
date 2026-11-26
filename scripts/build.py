@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from crash_report import location
+
 WS = Path(__file__).resolve().parent.parent / "ros2_ws"
 STAMPS = WS / "build" / "so101_stamps.json"
 VC_TOOLS = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
@@ -42,21 +44,45 @@ def msvc_env() -> dict:
     return {**os.environ, **dict(line.split("=", 1) for line in out.splitlines() if "=" in line)}
 
 
-def package_stamps() -> dict:
-    """Package name -> latest modification time of its files, for the packages colcon builds."""
-    stamps = {}
+def package_roots() -> dict:
+    """Package name -> its folder, for the packages colcon builds."""
+    roots = {}
     for xml in (WS / "src").rglob("package.xml"):
         root = xml.parent
-        if any((d / "COLCON_IGNORE").exists() for d in [root, *root.parents] if WS / "src" in [d, *d.parents]):
-            continue
-        name = re.search(r"<name>\s*(\S+?)\s*</name>", xml.read_text(encoding="utf-8"))[1]
-        stamps[name] = max(
+        if not any((d / "COLCON_IGNORE").exists() for d in [root, *root.parents] if WS / "src" in [d, *d.parents]):
+            roots[re.search(r"<name>\s*(\S+?)\s*</name>", xml.read_text(encoding="utf-8"))[1]] = root
+    return roots
+
+
+def package_stamps() -> dict:
+    """Package name -> latest modification time of its files."""
+    return {
+        name: max(
             os.stat(os.path.join(d, f)).st_mtime
             for d, dirs, files in os.walk(root)
             if "__pycache__" not in d and ".egg-info" not in d
             for f in [*files, "."]
         )
-    return stamps
+        for name, root in package_roots().items()
+    }
+
+
+def syntax_errors(packages: list) -> list:
+    """Compiles the Python files of these packages: a typo shows now, not after the stack started."""
+    roots = package_roots()
+    errors = []
+    for name in packages:
+        for path in sorted(roots[name].rglob("*.py")):
+            try:
+                compile(path.read_bytes(), str(path), "exec")
+            except SyntaxError as error:
+                errors.append(f"{location(str(path), error.lineno or 1, error.offset)}: {type(error).__name__}: {error.msg}")
+                line = (error.text or "").rstrip()
+                code = line.lstrip()
+                errors.append(f"    {code}")
+                if error.offset:
+                    errors.append("    " + " " * max(0, error.offset - 1 - (len(line) - len(code))) + "^")
+    return errors
 
 
 select = []
@@ -66,6 +92,9 @@ if not sys.argv[1:]:
     if not changed:
         print("ros2_ws is up to date (pixi run clean to rebuild everything)")
         sys.exit(0)
+    if errors := syntax_errors(changed):
+        print("\n".join(errors), file=sys.stderr)
+        sys.exit("\nFix this Python error first: nothing was built or launched.")
     select = ["--packages-select", *changed]
 
 if os.name == "nt":

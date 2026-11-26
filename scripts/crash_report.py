@@ -1,4 +1,5 @@
 """Echoes the output of ros2 launch and, if a node crashed, ends with its error (used by stack.py)."""
+import os
 import re
 import sys
 from collections import defaultdict, deque
@@ -6,7 +7,15 @@ from pathlib import Path
 
 DIED = re.compile(r"^\[ERROR\] \[(?P<node>[\w.-]+)\]: process has died \[pid \d+, exit code (?P<code>-?\d+)")
 NODE_LINE = re.compile(r"^\[(?P<node>[\w.-]+)\] (?P<text>.*)$")
-FILE = re.compile(r'^  File "(?P<path>[^"]+)"')
+FILE = re.compile(r'^  File "(?P<path>[^"]+)", line (?P<line>\d+)')
+
+
+def location(path: str, line: int, column: int | None = None) -> str:
+    """path:line[:column], relative to the terminal's folder when inside it: Ctrl/Cmd+click opens it in VS Code."""
+    cwd = os.environ.get("INIT_CWD", os.getcwd())  # pixi runs tasks from the repo root, INIT_CWD is yours
+    relative = os.path.relpath(path, cwd) if os.path.splitdrive(path)[0] == os.path.splitdrive(cwd)[0] else path
+    shown = path if relative.startswith("..") else relative
+    return f"{shown}:{line}" + (f":{column}" if column else "")
 
 
 def source_path(path: str, src: Path) -> str:
@@ -59,7 +68,7 @@ class CrashReport:
         tail = traceback[frames[-1] + 1:]
         error = tail[next((i for i, text in enumerate(tail) if not text.startswith(" ")), len(tail)):]
         frame = traceback[start:end] + (error if end < len(traceback) else [])
-        return [FILE.sub(lambda m: f'  File "{source_path(m["path"], self._src)}"', text) for text in frame]
+        return [FILE.sub(lambda m: "  " + location(source_path(m["path"], self._src), int(m["line"])), text) for text in frame]
 
     def print_summary(self) -> int:
         if self.crashed is None:

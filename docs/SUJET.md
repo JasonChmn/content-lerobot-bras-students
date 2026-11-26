@@ -39,8 +39,7 @@ robot.disconnect()
 | `is_calibrated` | real | `bool` |
 | `bus.disable_torque()` | real | arm free to move by hand |
 
-Source: [`sim/so101_sim/__init__.py`](../sim/so101_sim/__init__.py) and
-[`core/lerobot_min/lerobot/robots/so_follower/so_follower.py`](../core/lerobot_min/lerobot/robots/so_follower/so_follower.py).
+Source: [`sim/so101_sim/__init__.py`](../sim/so101_sim/__init__.py) and [`core/lerobot_min/lerobot/robots/so_follower/so_follower.py`](../core/lerobot_min/lerobot/robots/so_follower/so_follower.py).
 
 ## What you write
 
@@ -50,9 +49,7 @@ Everything else. At least three ROS2 nodes:
 - Instantiates `SO101Sim` **or** `SO101Follower` from a `use_sim` parameter
   (default `true`). The rest of your stack must **never** know which one runs.
 - Publishes `/joint_states` (≥20 Hz).
-- Camera: already published for you on `/external_cam/image_raw` (`so101_driver/camera.py`):
-  the MuJoCo camera in simulation (10 Hz, with `/external_cam/camera_info`), the USB camera
-  on the real arm (30 Hz, `SO101_CAMERA_DEVICE`, see the README).
+- Camera: already published for you on `/external_cam/image_raw` (`so101_driver/camera.py`): the MuJoCo camera in simulation (10 Hz, with `/external_cam/camera_info`), the USB camera on the real arm (30 Hz, `SO101_CAMERA_DEVICE`, see the README).
 - Subscribes to `/joint_command` (radians, gripper 0-100).
 
 ### 2. `perception_node`

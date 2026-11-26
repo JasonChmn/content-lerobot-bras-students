@@ -7,7 +7,6 @@
 import json
 import os
 import platform
-import shutil
 import subprocess
 import sys
 import time
@@ -35,20 +34,6 @@ def check_repo_path():
         report("FAIL", "Repo path", f"{path} is on the Windows disk: builds are many times slower", "clone the repo in ~/ inside WSL")
     else:
         report("ok", "Repo path", path)
-
-
-def check_compiler():
-    if os.name != "nt":
-        return
-    vswhere = Path(os.environ.get("ProgramFiles(x86)", "")) / "Microsoft Visual Studio/Installer/vswhere.exe"
-    found = shutil.which("cl") or (vswhere.is_file() and subprocess.run(
-        [str(vswhere), "-latest", "-products", "*", "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-         "-property", "installationPath"], capture_output=True, text=True).stdout.strip())
-    if found:
-        report("ok", "MSVC compiler", "found")
-    else:
-        report("FAIL", "MSVC compiler", "not found (needed to build so101_interfaces)",
-               "install the Build Tools with the C++ workload (README, Prerequisites), then open a new terminal")
 
 
 def check_workspace():
@@ -158,7 +143,6 @@ def main():
     env_file.load()
     print(f"{platform.system()} {platform.release()}{' (WSL)' if WSL else ''}, Python {platform.python_version()}")
     check_repo_path()
-    check_compiler()
     check_workspace()
     check_ros_messages()
     check_real_arm()

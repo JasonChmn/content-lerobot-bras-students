@@ -10,7 +10,6 @@
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>sensor_msgs</depend>
-  <depend>so101_interfaces</depend>
   <exec_depend>cv_bridge</exec_depend>
 
   <export>

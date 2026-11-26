@@ -7,8 +7,6 @@
         "sim",
         ".pixi/envs/default/lib/python3.12/site-packages",
         ".pixi/envs/default/Lib/site-packages",
-        ".pixi/envs/default/Library/lib/site-packages",
-        "ros2_ws/install/so101_interfaces/lib/python3.12/site-packages",
-        "ros2_ws/install/Lib/site-packages"
+        ".pixi/envs/default/Library/lib/site-packages"
     ]
 }

@@ -19,14 +19,9 @@ ros-jazzy-tf2-ros = "*"
 ros-jazzy-tf-transformations = "*"
 ros-jazzy-image-transport = "*"
 ros-jazzy-message-filters = "*"
-ros-jazzy-rosidl-default-generators = "*"
 ros-jazzy-pinocchio = "*"
-# Workspace build (so101_interfaces is a C++/CMake package)
+# Workspace build
 colcon-common-extensions = "*"
-compilers = "*"
-cmake = ">=3.22,<4"
-ninja = "*"
-pkg-config = "*"
 # Simulation, vision, real arm
 mujoco = ">=3.2"
 opencv = ">=4.10,<5"

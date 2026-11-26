@@ -20,7 +20,7 @@ Choose native or WSL2:
 | | Native (PowerShell or Command Prompt) | WSL2 (Ubuntu) |
 |---|---|---|
 | RViz | GPU | CPU, slower |
-| Setup | Pixi + C++ Build Tools (~2 GB) | `wsl --install -d Ubuntu` (admin), then as Linux |
+| Setup | Pixi | `wsl --install -d Ubuntu` (admin), then as Linux |
 | Python edits | Need `pixi run build` | Taken into account directly |
 | Real arm | `COM` port | USB attached with [usbipd-win](https://learn.microsoft.com/windows/wsl/connect-usb) |
 
@@ -28,7 +28,6 @@ Native, in PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm -useb https://pixi.sh/install.ps1 | iex"
-winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 ```
 
 WSL2: in Ubuntu, follow [macOS, Linux](#macos-linux).
@@ -90,9 +89,7 @@ pixi run launch --backend real
 
 | Symptom | Fix |
 |---|---|
-| `CMakeCache.txt directory … is different` | `pixi run clean`, then rebuild |
 | `ros2 topic list` does not see your nodes | Start each terminal with `pixi run` or `pixi shell` |
-| Windows: `MSVC compiler not found` | Install the Build Tools ([Prerequisites](#prerequisites)), open a new terminal |
 | Windows: odd `colcon` or `ros2` errors | Move the repo to a short path without spaces, e.g. `C:\tek5_robotics` |
 | Windows: Python edit not taken into account | `pixi run build` (no symlinks on Windows) |
 | Windows: firewall popup for `python.exe` | Cancel: ROS 2 only talks on your machine |

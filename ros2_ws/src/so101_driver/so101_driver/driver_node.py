@@ -18,9 +18,9 @@ from pathlib import Path
 
 import rclpy
 import rclpy.node
+from cv_bridge import CvBridge
 from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
 from rclpy.executors import ExternalShutdownException
-from cv_bridge import CvBridge
 from sensor_msgs.msg import CameraInfo, Image, JointState
 from so101_sim import SO101Sim
 

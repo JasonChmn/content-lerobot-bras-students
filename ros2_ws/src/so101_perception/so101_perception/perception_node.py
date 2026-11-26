@@ -21,7 +21,6 @@ from geometry_msgs.msg import PoseStamped
 from rcl_interfaces.srv import GetParameters
 from sensor_msgs.msg import CameraInfo, Image
 
-
 # -- HSV ranges for the golden ball --------------------------------------------
 # Tune according to the lighting of the MuJoCo scene.
 HSV_MIN = np.array([15, 80, 150], dtype=np.uint8)

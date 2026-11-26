@@ -6,9 +6,8 @@ semi-transparent red Cube marker on /drop_box_marker for RViz.
 """
 
 import rclpy
-from rclpy.node import Node
-
 from geometry_msgs.msg import PoseStamped
+from rclpy.node import Node
 from visualization_msgs.msg import Marker
 
 

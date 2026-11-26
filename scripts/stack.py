@@ -15,9 +15,11 @@ import sys
 import threading
 from pathlib import Path
 
+import env_file
 import overlay
 from crash_report import CrashReport
 
+env_file.load()  # .env: SO101_PORT, SO101_CALIBRATION_FILE, SO101_CAMERA_DEVICE
 parser = argparse.ArgumentParser()
 parser.add_argument("--backend", choices=["sim", "real"], default="sim", help="same stack, simulated or real arm")
 parser.add_argument("--port", default=os.environ.get("SO101_PORT"), help="serial port of the real arm (or SO101_PORT)")

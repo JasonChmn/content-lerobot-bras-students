@@ -75,15 +75,14 @@ The arm stays "in pieces" until `driver_node` publishes `/joint_states`.
 
 ## Real arm
 
-In a `pixi shell`, use `lerobot-find-port`, `lerobot-calibrate` and `lerobot-find-cameras` as in the [LeRobot SO-101 guide](https://huggingface.co/docs/lerobot/main/en/so101) (`--robot.type=so101_follower`). Then:
+In a `pixi shell`, use `lerobot-find-port`, `lerobot-calibrate` and `lerobot-find-cameras` as in the [LeRobot SO-101 guide](https://huggingface.co/docs/lerobot/main/en/so101) (`--robot.type=so101_follower`). Then copy `.env.example` to `.env`, fill in the port, the calibration file and the camera, and:
 
 ```bash
-export SO101_CALIBRATION_FILE=<calibration file>     # PowerShell: $env:SO101_CALIBRATION_FILE = "<file>"
-export SO101_CAMERA_DEVICE=<camera>                  # index or /dev/videoN from lerobot-find-cameras, default 0
-pixi run launch --backend real --port <port>         # or set SO101_PORT
+pixi run doctor                    # checks them
+pixi run launch --backend real
 ```
 
-- **Linux**: `sudo usermod -aG dialout $USER`, then log out and back in. Another way to find the port, watch it appear when you plug the USB cable:
+- **Linux**: `sudo usermod -aG dialout $USER`, then log out and back in. Use the port's stable name from `ls -l /dev/serial/by-id/`: `/dev/ttyACM0` can change when you plug the arms in another order. Another way to find the port, watch it appear when you plug the USB cable:
   `sudo udevadm monitor --subsystem-match=tty --property | grep --line-buffered -E "(DEVNAME=|ACTION=)"`
 - **WSL2**: attach the USB device with [usbipd-win](https://learn.microsoft.com/windows/wsl/connect-usb).
 

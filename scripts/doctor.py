@@ -13,6 +13,8 @@ import sys
 import time
 from pathlib import Path
 
+import env_file
+
 ROOT = Path(__file__).resolve().parent.parent
 WSL = sys.platform.startswith("linux") and "microsoft" in platform.uname().release.lower()
 results = []
@@ -122,6 +124,10 @@ def check_real_arm():
     port = os.environ.get("SO101_PORT")
     if not port:
         report("warn", "SO101_PORT", "not set (or pass --port)", f"lerobot-find-port; ports now: {', '.join(ports) or 'none'}")
+    elif sys.platform.startswith("linux") and Path(port).exists() and not port.startswith("/dev/serial/by-id/"):
+        stable = [str(p) for p in Path("/dev/serial/by-id").glob("*") if p.resolve() == Path(port).resolve()]
+        report("warn", "SO101_PORT", f"{port} can change when you plug the arms in another order",
+               f"use SO101_PORT={stable[0]}" if stable else "use its /dev/serial/by-id/ name")
     elif port in ports or Path(port).exists():
         report("ok", "SO101_PORT", port)
     else:
@@ -149,6 +155,7 @@ def check_camera():
 def main():
     if "--listen" in sys.argv:
         return listen()
+    env_file.load()
     print(f"{platform.system()} {platform.release()}{' (WSL)' if WSL else ''}, Python {platform.python_version()}")
     check_repo_path()
     check_compiler()

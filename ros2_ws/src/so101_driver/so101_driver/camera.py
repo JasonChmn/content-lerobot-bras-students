@@ -96,7 +96,7 @@ class UsbCamera(_Camera):
 
     def __init__(self, node: Node):
         super().__init__(node, hz=30.0, encoding="bgr8")
-        device = os.environ.get("SO101_CAMERA_DEVICE", "0")  # index, or /dev/videoN on Linux
+        device = os.environ.get("SO101_CAMERA_DEVICE") or "0"  # index, or /dev/videoN on Linux
         self._capture = cv2.VideoCapture(int(device) if device.isdigit() else device)
         if not self._capture.isOpened():
             node.get_logger().error(f"Camera {device} not available: set SO101_CAMERA_DEVICE (see README, Real arm)")

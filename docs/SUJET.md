@@ -1,4 +1,4 @@
-# Tek5 — SO-ARM101: simulation, IK, perception, pick & place
+# Tek5: SO-ARM101 simulation, IK, perception, pick & place
 
 **Goal:** a camera spots a red cube with holes, the arm picks it up and drops it in a box.
 In simulation first, then, even better, on the real robot.
@@ -18,15 +18,29 @@ In a second phase, find your own application with this robot arm. It could be an
 | Environment | `pixi.toml` | ROS 2 Jazzy + MuJoCo + Python libs, installed by Pixi. See the [README](../README.md) |
 | ROS2 example | `ros2_ws/src/example_py_pkg` | Minimal package. Check ROS 2 comms with `talker` first |
 
-Common API for both backends:
+Common API for both backends (`self._robot` in `driver_node.py`):
 
 ```python
 robot.connect()
-obs = robot.get_observation()   # {"shoulder_pan.pos": rad, ..., "gripper.pos": 0-100,
-                                #  "external_cam": RGB image (sim only)}
+obs = robot.get_observation()   # {"shoulder_pan.pos": rad, ..., "gripper.pos": 0-100}
 robot.send_action({"shoulder_pan.pos": 0.35, "gripper.pos": 50.0})
 robot.disconnect()
 ```
+
+| Member | Backend | Returns |
+|---|---|---|
+| `is_connected` | both | `bool` |
+| `render_camera()` | sim | RGB image `(H, W, 3)`, not part of `get_observation()` |
+| `camera_width`, `camera_height` | sim | render size in pixels |
+| `get_camera_intrinsics()` | sim | K matrix `(3, 3)` |
+| `get_camera_extrinsics()` | sim | camera to world pose `(4, 4)` |
+| `randomize_object()` | sim | moves the cube to a new reachable pose |
+| `get_object_position()`, `get_drop_box_position()` | sim | world positions, debug only: your pipeline must use perception |
+| `is_calibrated` | real | `bool` |
+| `bus.disable_torque()` | real | arm free to move by hand |
+
+Source: [`sim/so101_sim/__init__.py`](../sim/so101_sim/__init__.py) and
+[`core/lerobot_min/lerobot/robots/so_follower/so_follower.py`](../core/lerobot_min/lerobot/robots/so_follower/so_follower.py).
 
 ## What you write
 

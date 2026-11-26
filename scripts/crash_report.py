@@ -4,8 +4,8 @@ import sys
 from collections import defaultdict, deque
 from pathlib import Path
 
-DIED = re.compile(r"^\[ERROR\] \[(?P<node>[\w-]+)\]: process has died \[pid \d+, exit code (?P<code>-?\d+)")
-NODE_LINE = re.compile(r"^\[(?P<node>[\w-]+)\] (?P<text>.*)$")
+DIED = re.compile(r"^\[ERROR\] \[(?P<node>[\w.-]+)\]: process has died \[pid \d+, exit code (?P<code>-?\d+)")
+NODE_LINE = re.compile(r"^\[(?P<node>[\w.-]+)\] (?P<text>.*)$")
 FILE = re.compile(r'^  File "(?P<path>[^"]+)"')
 
 

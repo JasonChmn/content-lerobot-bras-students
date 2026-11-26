@@ -20,6 +20,7 @@ dependencies = [
 [project.scripts]
 lerobot-find-port = "lerobot.scripts.lerobot_find_port:main"
 lerobot-calibrate = "lerobot.scripts.lerobot_calibrate:main"
+lerobot-find-cameras = "lerobot.scripts.lerobot_find_cameras:main"
 
 [project.optional-dependencies]
 sim = ["mujoco>=3.0"]

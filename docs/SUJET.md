@@ -51,7 +51,8 @@ Everything else. At least three ROS2 nodes:
   (default `true`). The rest of your stack must **never** know which one runs.
 - Publishes `/joint_states` (≥20 Hz).
 - Camera: in simulation `/external_cam/image_raw` and `/external_cam/camera_info` (10 Hz)
-  are already published for you (`_start_sim_camera`). On the real arm, publish the USB camera yourself.
+  are already published for you (`_start_sim_camera`). On the real arm, publish the USB camera yourself
+  (find its index with `lerobot-find-cameras` in a `pixi shell`).
 - Subscribes to `/joint_command` (radians, gripper 0-100).
 
 ### 2. `perception_node`

@@ -74,7 +74,7 @@ The arm stays "in pieces" until `driver_node` publishes `/joint_states`.
 
 ## Real arm
 
-In a `pixi shell`, use `lerobot-find-port` and `lerobot-calibrate` as in the
+In a `pixi shell`, use `lerobot-find-port`, `lerobot-calibrate` and `lerobot-find-cameras` as in the
 [LeRobot SO-101 guide](https://huggingface.co/docs/lerobot/main/en/so101) (`--robot.type=so101_follower`). Then:
 
 ```bash

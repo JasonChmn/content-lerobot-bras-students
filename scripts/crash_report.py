@@ -47,12 +47,14 @@ class CrashReport:
             return lines[-5:]
         traceback = lines[starts[-1] + 1:]
         frames = [i for i, text in enumerate(traceback) if text.startswith('  File "')]
-        own = [i for i in frames if ".pixi" not in traceback[i] and "<frozen" not in traceback[i]]
-        if not own:
+        if not frames:
             return traceback[-3:]
+        in_src = [i for i in frames if Path(source_path(FILE.match(traceback[i])["path"], self._src)).is_relative_to(self._src)]
+        own = in_src or [i for i in frames if ".pixi" not in traceback[i] and "<frozen" not in traceback[i]] or frames
         start = own[-1]
         end = next((i for i in frames if i > start), len(traceback))
-        error = [text for text in traceback[end:] if not text.startswith(" ")][-1:]
+        tail = traceback[frames[-1] + 1:]
+        error = tail[next((i for i, text in enumerate(tail) if not text.startswith(" ")), len(tail)):]
         frame = traceback[start:end] + (error if end < len(traceback) else [])
         return [FILE.sub(lambda m: f'  File "{source_path(m["path"], self._src)}"', text) for text in frame]
 

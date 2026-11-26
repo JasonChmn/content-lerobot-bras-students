@@ -27,12 +27,15 @@ class CrashReport:
         self._lines = defaultdict(lambda: deque(maxlen=200))
 
     def follow(self, stream):
-        for line in stream:
+        for raw in stream:
+            line = raw.decode("utf-8", "replace").replace("\r", "")  # Windows: \r\r\n from C++ nodes
             try:
                 sys.stdout.write(line)
                 sys.stdout.flush()
             except OSError:  # terminal closed: keep reading, ros2 launch must not block on a full pipe
                 pass
+            if "user interrupted with ctrl-c" in line:  # Windows: stack.py sees Ctrl-C only after ros2 launch
+                self.stopping = True
             if (match := DIED.match(line)) is not None:
                 if self.crashed is None and not self.stopping:
                     self.crashed = (match["node"], int(match["code"]))

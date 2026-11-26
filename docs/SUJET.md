@@ -50,9 +50,9 @@ Everything else. At least three ROS2 nodes:
 - Instantiates `SO101Sim` **or** `SO101Follower` from a `use_sim` parameter
   (default `true`). The rest of your stack must **never** know which one runs.
 - Publishes `/joint_states` (≥20 Hz).
-- Camera: in simulation `/external_cam/image_raw` and `/external_cam/camera_info` (10 Hz)
-  are already published for you (`_start_sim_camera`). On the real arm, publish the USB camera yourself
-  (find its index with `lerobot-find-cameras` in a `pixi shell`).
+- Camera: already published for you on `/external_cam/image_raw` (`so101_driver/camera.py`):
+  the MuJoCo camera in simulation (10 Hz, with `/external_cam/camera_info`), the USB camera
+  on the real arm (30 Hz, `SO101_CAMERA_DEVICE`, see the README).
 - Subscribes to `/joint_command` (radians, gripper 0-100).
 
 ### 2. `perception_node`

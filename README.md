@@ -79,6 +79,7 @@ In a `pixi shell`, use `lerobot-find-port`, `lerobot-calibrate` and `lerobot-fin
 
 ```bash
 export SO101_CALIBRATION_FILE=<calibration file>     # PowerShell: $env:SO101_CALIBRATION_FILE = "<file>"
+export SO101_CAMERA_DEVICE=<camera>                  # index or /dev/videoN from lerobot-find-cameras, default 0
 pixi run launch --backend real --port <port>         # or set SO101_PORT
 ```
 

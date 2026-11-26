@@ -57,6 +57,7 @@ In a second terminal: `pixi run rviz2`.
 | `pixi run rviz2` | RViz with `ros2_ws/so101.rviz` |
 | `pixi shell` | Shell with ROS 2 and the workspace sourced |
 | `pixi run ros2 <args>` | Any ROS 2 command |
+| `pixi run doctor` | Check the setup, with the fix for each problem |
 | `pixi run clean` | Delete `ros2_ws/build install log` |
 | `pixi add <pkg>`, `pixi add --pypi <pkg>` | Add a dependency, commit `pixi.toml` and `pixi.lock` |
 

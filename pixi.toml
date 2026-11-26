@@ -63,4 +63,5 @@ ros-jazzy-rmw-cyclonedds-cpp = "*"
 build = "python scripts/build.py"
 launch = { cmd = "python scripts/stack.py", depends-on = ["build"] }
 rviz2 = { cmd = "python ../scripts/overlay.py rviz2 -d so101.rviz", cwd = "ros2_ws" }
+doctor = "python scripts/doctor.py"
 clean = { cmd = "rm -rf build install log", cwd = "ros2_ws" }  # pixi's own rm, works on Windows too

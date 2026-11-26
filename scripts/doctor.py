@@ -118,7 +118,7 @@ def check_real_arm():
 
     from serial.tools import list_ports
 
-    ports = [p.device for p in list_ports.comports()]
+    ports = [p.device for p in list_ports.comports() if p.vid is not None]  # USB only: no Bluetooth or /dev/ttyS*
     port = os.environ.get("SO101_PORT")
     if not port:
         report("warn", "SO101_PORT", "not set (or pass --port)", f"lerobot-find-port; ports now: {', '.join(ports) or 'none'}")

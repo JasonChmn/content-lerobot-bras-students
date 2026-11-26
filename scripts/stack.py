@@ -11,8 +11,12 @@ import argparse
 import os
 import signal
 import subprocess
+import sys
+import threading
+from pathlib import Path
 
 import overlay
+from crash_report import CrashReport
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--backend", choices=["sim", "real"], default="sim", help="same stack, simulated or real arm")
@@ -23,12 +27,20 @@ if opts.backend == "real" and not opts.port:
 
 overlay.load()  # workspace built after pixi activated (by `build`)
 
+# Node logs and print() show at once, not when the node exits (Windows buffers them).
+os.environ.setdefault("RCUTILS_LOGGING_BUFFERED_STREAM", "0")
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
+
 use_sim = "true" if opts.backend == "sim" else "false"
 # --noninteractive: ros2 launch forwards Ctrl-C to the nodes (own session, see below).
 command = ["ros2", "launch", *(["--noninteractive"] if os.name != "nt" else []), "so101_bringup", "so101.launch.py", f"use_sim:={use_sim}", *([f"port:={opts.port}"] if opts.port else [])]
 # POSIX: own session, so a terminal Ctrl-C reaches the nodes once (from ros2 launch),
 # not twice, which would interrupt destroy_node().
-proc = subprocess.Popen(command, start_new_session=os.name != "nt")
+proc = subprocess.Popen(command, start_new_session=os.name != "nt", stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+report = CrashReport(Path(__file__).resolve().parent.parent / "ros2_ws" / "src")
+reader = threading.Thread(target=report.follow, args=(proc.stdout,), daemon=True)
+reader.start()
 
 
 def _interrupt(*_):
@@ -42,6 +54,7 @@ for name in ("SIGHUP", "SIGTERM"):
 try:
     proc.wait()
 except KeyboardInterrupt:
+    report.stopping = True
     for name in ("SIGINT", "SIGHUP", "SIGTERM"):  # extra Ctrl-C: the nodes are already stopping
         if hasattr(signal, name):
             signal.signal(getattr(signal, name), signal.SIG_IGN)
@@ -54,3 +67,8 @@ except KeyboardInterrupt:
             os.killpg(proc.pid, signal.SIGKILL)  # ros2 launch and its nodes
         else:
             proc.kill()
+reader.join(timeout=5)
+try:
+    sys.exit(report.print_summary())
+except OSError:  # terminal closed
+    sys.exit(1)

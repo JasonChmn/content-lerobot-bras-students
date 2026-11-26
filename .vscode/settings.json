@@ -1,0 +1,14 @@
+{
+    // Pixi env: macOS and Linux path. Windows: Python: Select Interpreter, .pixi\envs\default\python.exe
+    "python.defaultInterpreterPath": "${workspaceFolder}/.pixi/envs/default/bin/python",
+    // Imports resolve even with another interpreter selected (missing paths are ignored).
+    "python.analysis.extraPaths": [
+        "core/lerobot_min",
+        "sim",
+        ".pixi/envs/default/lib/python3.12/site-packages",
+        ".pixi/envs/default/Lib/site-packages",
+        ".pixi/envs/default/Library/lib/site-packages",
+        "ros2_ws/install/so101_interfaces/lib/python3.12/site-packages",
+        "ros2_ws/install/Lib/site-packages"
+    ]
+}

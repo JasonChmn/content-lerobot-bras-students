@@ -1,4 +1,4 @@
-# Tek5 — SO-ARM101 pick & place
+# Tek5: SO-ARM101 pick & place
 
 Simulation, IK, perception and pick & place on the SO-ARM101 arm, with ROS 2 Jazzy and MuJoCo.
 Project spec: [`docs/SUJET.md`](docs/SUJET.md).

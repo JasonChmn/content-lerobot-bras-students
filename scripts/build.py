@@ -71,8 +71,11 @@ if not sys.argv[1:]:
         sys.exit("\nFix this Python error first: nothing was built or launched.")
     select = ["--packages-select", *changed]
 
+for var in ("AMENT_PREFIX_PATH", "CMAKE_PREFIX_PATH"):  # a terminal opened before a clean keeps removed packages
+    if var in os.environ:
+        os.environ[var] = os.pathsep.join(p for p in os.environ[var].split(os.pathsep) if os.path.isdir(p))
 # Symlinks need admin rights on Windows: Python edits need a rebuild (launch does it).
-args = ["--merge-install"] if os.name == "nt" else ["--symlink-install"]
+args =["--merge-install"] if os.name == "nt" else ["--symlink-install"]
 # python -m colcon: the colcon.exe shim breaks when the Python path holds a space.
 code = subprocess.call([sys.executable, "-m", "colcon", "build", *args, *select, *sys.argv[1:]], cwd=WS)
 if code == 0 and select:

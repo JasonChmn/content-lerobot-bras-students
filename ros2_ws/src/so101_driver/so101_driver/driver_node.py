@@ -19,7 +19,7 @@ from rclpy.executors import ExternalShutdownException
 from sensor_msgs.msg import JointState
 from so101_sim import SO101Sim
 
-from so101_driver.camera import SimCamera, UsbCamera
+from .camera import SimCamera, UsbCamera
 
 JOINT_NAMES = [
     "shoulder_pan",

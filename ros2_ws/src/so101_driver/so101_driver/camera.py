@@ -45,7 +45,11 @@ class _Camera:
         next_frame = time.monotonic()
         while not self._stop.wait(max(0.0, next_frame - time.monotonic())):
             next_frame += 1.0 / self._hz
-            frame = self._read()
+            try:
+                frame = self._read()
+            except Exception as error:  # e.g. no OpenGL for MuJoCo: say it, instead of an empty topic
+                self._node.get_logger().error(f"Camera stopped, /external_cam/image_raw stays empty: {error!r}")
+                return
             if frame is None:
                 continue
             image = bridge.cv2_to_imgmsg(frame, encoding=self._encoding)

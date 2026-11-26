@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Builds ros2_ws with colcon (pixi run build). Extra arguments go to colcon.
 
-Only the packages changed since the last build are rebuilt, nothing if none changed.
-
 Windows: so101_interfaces is a C++ package, it needs the MSVC compiler
 (Visual Studio Build Tools, "Desktop development with C++" workload).
 """

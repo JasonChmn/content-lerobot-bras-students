@@ -6,6 +6,7 @@ Windows: so101_interfaces is a C++ package, it needs the MSVC compiler
 """
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -84,6 +85,9 @@ def syntax_errors(packages: list) -> list:
                     errors.append("    " + " " * max(0, error.offset - 1 - (len(line) - len(code))) + "^")
     return errors
 
+
+if sys.platform.startswith("linux") and "microsoft" in platform.uname().release.lower() and str(WS).startswith("/mnt/"):
+    print(f"WSL: {WS.parent} is on the Windows disk, builds are many times slower. Clone the repo in ~/ instead.", file=sys.stderr)
 
 select = []
 if not sys.argv[1:]:

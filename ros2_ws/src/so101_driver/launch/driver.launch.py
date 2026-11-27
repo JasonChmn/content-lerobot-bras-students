@@ -8,7 +8,6 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -22,9 +21,7 @@ def generate_launch_description():
             executable="driver",
             name="so101_driver",
             output="screen",
-            parameters=[{
-                "use_sim": ParameterValue(LaunchConfiguration("use_sim"), value_type=bool),
-                "port": LaunchConfiguration("port"),
-            }],
+            ros_arguments=["-p", ["use_sim:=", LaunchConfiguration("use_sim")],
+                           "-p", ["port:='", LaunchConfiguration("port"), "'"]],
         ),
     ])
